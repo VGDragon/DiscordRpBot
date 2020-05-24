@@ -5,10 +5,11 @@ import net.dv8tion.jda.api.entities.Activity
 
 
     fun main(args: Array<String>) {
-        //botStart(args)
-        val kinkListDecoder =
-            kinkListDecoder("https://cdn.rawgit.com/Goctionni/KinkList/master/v1.0.2.html#OK6J2rDkSbSHIv3ea3KwIgd.3JRDf1+THwQGe5eF+@_JYPWJOsMZ78px+Sz7=OkYPH_U@5Et-31=tpWMaaaWVE=1")
-        println()
+
+        botStart(args)
+        //val kinkListDecoder =
+        //    kinkListDecoder("https://cdn.rawgit.com/Goctionni/KinkList/master/v1.0.2.html#OK6J2rDkSbSHIv3ea3KwIgd.3JRDf1+THwQGe5eF+@_JYPWJOsMZ78px+Sz7=OkYPH_U@5Et-31=tpWMaaaWVE=1")
+        //println()
     }
 
 fun botStart (args: Array<String>){

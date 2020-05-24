@@ -3,7 +3,10 @@ package com.vgdragon
 import com.vgdragon.dataclass.KinkList
 import com.vgdragon.dataclass.SizeCm
 import com.vgdragon.dataclass.SizeFeetAndInches
+import net.dv8tion.jda.api.entities.EmbedType
+import net.dv8tion.jda.api.entities.MessageEmbed
 import java.net.URLDecoder
+import java.time.OffsetDateTime
 
 fun convertCmInFeetAndInches(sizeCm: SizeCm): SizeFeetAndInches{
     var feet: Double = sizeCm.size / 30.48
@@ -12,11 +15,16 @@ fun convertCmInFeetAndInches(sizeCm: SizeCm): SizeFeetAndInches{
 
     return SizeFeetAndInches("$feet".split(".")[0].toInt(), inches)
 }
-
 fun convertFeetAndInchesInCm(sizeFeetAndInches: SizeFeetAndInches): SizeCm{
     var cm = sizeFeetAndInches.feet * 30.48
     cm += sizeFeetAndInches.inches * 2.54
     return SizeCm(cm.toInt())
+}
+fun convertLbsToKg(lbs: Int): Int{
+    return (lbs / 2.205).toInt()
+}
+fun convertKgToLbs(kg: Int): Int{
+return (kg * 2.205).toInt()
 }
 
 fun kinkListDecoder(kinkListUrl: String, para: String = ""): KinkList{
@@ -71,11 +79,11 @@ fun kinkListDecoder(kinkListUrl: String, para: String = ""): KinkList{
         restCode = restCode.substring(i + 9, restCode.length)
     }
 
+    val kinkListClass = codeIntListToKinkList(codeIntList, para)
+    kinkListClass.link = kinkListUrl
 
-
-    return codeIntListToKinkList(codeIntList, para)
+    return kinkListClass
 }
-
 fun defaultParaString(): String{
     return "#Bodies\n" +
             "(General)\n" +
@@ -240,7 +248,6 @@ fun defaultParaString(): String{
             "* Biting\n" +
             "* Cutting"
 }
-
 fun bin5Decode(long: Long):MutableList<Int>{
     var restLong = long
     val returnList: MutableList<Int> = mutableListOf()
@@ -269,8 +276,6 @@ fun bin5Decode(long: Long):MutableList<Int>{
 
     return returnList
 }
-
-
 fun codeIntListToKinkList(codeIntList: MutableList<Int>, para: String): KinkList{
     val kinkList = KinkList()
 
@@ -312,4 +317,42 @@ fun codeIntListToKinkList(codeIntList: MutableList<Int>, para: String): KinkList
 
     return kinkList
 }
+
+
+fun convertRichMessage(url: String = "",
+                       title: String = "",
+                       description: String = "",
+                       embedType: EmbedType = EmbedType.RICH,
+                       timestamp: OffsetDateTime = OffsetDateTime.now(),
+                       color: Int = 0xff1808,
+                       thumbnail: MessageEmbed.Thumbnail = convertMessageThunbnail(),
+                       siteProvider: MessageEmbed.Provider = convertMessageProvider(),
+                       author: MessageEmbed.AuthorInfo = convertMessageAutorInfo(),
+                       videoInfo: MessageEmbed.VideoInfo = convertMessageVideoInfo(),
+                       footer: MessageEmbed.Footer = convertMessageFooter(),
+                       image: MessageEmbed.ImageInfo = convertMessageImageInfo(),
+                       fields: List<MessageEmbed.Field> = listOf()
+                    ): MessageEmbed {
+    return MessageEmbed(url,title, description, embedType, timestamp, color, thumbnail, siteProvider, author, videoInfo, footer, image, fields)
+}
+fun convertMessageThunbnail(url: String = "", proxyUrl: String = "", width: Int = 0, height: Int = 0): MessageEmbed.Thumbnail {
+    return MessageEmbed.Thumbnail(url, proxyUrl, width, height)
+}
+fun convertMessageProvider(name: String = "", url: String = ""): MessageEmbed.Provider {
+    return MessageEmbed.Provider(name, url)
+}
+fun convertMessageAutorInfo(name: String = "", url: String = "", iconUrl: String = "", proxyIconUrl: String = ""): MessageEmbed.AuthorInfo {
+return MessageEmbed.AuthorInfo(name, url, iconUrl, proxyIconUrl)
+}
+fun convertMessageVideoInfo(url: String = "", width: Int = 0, height: Int = 0): MessageEmbed.VideoInfo {
+    return MessageEmbed.VideoInfo(url, width, height)
+}
+fun convertMessageFooter(text: String = "",iconUrl: String = "", proxyIconUrl: String = ""): MessageEmbed.Footer {
+    return MessageEmbed.Footer(text, iconUrl, proxyIconUrl)
+}
+fun convertMessageImageInfo(url: String = "", proxyUrl: String = "", width: Int = 0, height: Int = 0): MessageEmbed.ImageInfo {
+    return MessageEmbed.ImageInfo(url, proxyUrl, width, height)
+
+}
+
 
