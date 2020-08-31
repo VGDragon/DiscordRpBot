@@ -2,6 +2,7 @@ package com.vgdragon.funftions
 
 import com.vgdragon.convertRichMessage
 import com.vgdragon.dataclass.BotData
+import com.vgdragon.dataclass.PrivateUserData
 import com.vgdragon.kinkListDecoder
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
@@ -12,19 +13,19 @@ class KinkListFunktions (val botData: BotData){
 
     fun kinkLitsMassage(event: MessageReceivedEvent,
                         prefix: String,
-                        massageSplitted: MutableList<String> = mutableListOf()){
+                        massageSplitted: MutableList<String> = mutableListOf()): Boolean{
 
         if(massageSplitted.size < 2){
             defaultMassage(event, prefix)
-            return
+            return false
         }
         massageSplitted.removeAt(0)
 
-        when(massageSplitted[0].toLowerCase()){
+        return when(massageSplitted[0].toLowerCase()){
 
             "update" -> kinkListUpdate(event, prefix, massageSplitted)
-            "help" -> helpMessage(event, prefix, massageSplitted)
-
+            "help" -> {helpMessage(event, prefix, massageSplitted); true}
+            else -> false
 
         }
 
@@ -54,21 +55,21 @@ class KinkListFunktions (val botData: BotData){
 
     fun kinkListUpdate(event: MessageReceivedEvent,
                        prefix: String,
-                       massageSplitted: MutableList<String> = mutableListOf()){
+                       massageSplitted: MutableList<String> = mutableListOf()): Boolean{
 
         if(massageSplitted.size < 2){
-            return
+            return false
         }
         massageSplitted.removeAt(0)
 
         try {
             val kinkListDecoder = kinkListDecoder(massageSplitted[0])
-            val privateUserData = if(botData.privatUserData.get(event.author.id) != null){
-                event.channel.sendMessage("KinkList-Update: User \"${event.author.name}\" not found.").submit()
-                botData.privatUserData.get(event.author.id)
-            } else {
-                null
-            }  ?: return
+            var privateUserData = botData.privatUserData.get(event.author.id)
+
+            if(privateUserData == null){
+                privateUserData = PrivateUserData(event.author.id)
+                botData.privatUserData.put(event.author.id, privateUserData)
+            }
 
             privateUserData.kinks = kinkListDecoder
 
@@ -79,11 +80,10 @@ class KinkListFunktions (val botData: BotData){
                 characterClass.kinks = kinkListDecoder
             }
 
-
             event.channel.sendMessage("KinkList from \"${event.author.name}\" Updated").submit()
-
+            return true
         } catch (e: Exception){}
-
+        return false
     }
 
 

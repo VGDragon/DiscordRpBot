@@ -73,6 +73,8 @@ class EventListener : ListenerAdapter() {
     }
 
     override fun onMessageReceived(event: MessageReceivedEvent) {
+
+
         if(event.author.isBot)
             return
 
@@ -91,12 +93,15 @@ class EventListener : ListenerAdapter() {
             }
 
         }
+        var saveDate = false
         synchronized(botDataLock) {
             val massageHandler = MassageHandler(botData)
-            massageHandler.onMassage(event, prefix)
+            saveDate = massageHandler.onMassage(event, prefix)
         }
+        if(saveDate)
+            backupWrite()
         println()
-    } // todo save data if updated
+    }
 
     override fun onMessageReactionAdd(event: MessageReactionAddEvent) {
 

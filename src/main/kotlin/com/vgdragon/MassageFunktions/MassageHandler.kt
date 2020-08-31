@@ -15,11 +15,11 @@ class MassageHandler (val botData: BotData){
 
 
 
-    fun onMassage(event: MessageReceivedEvent, prefix: String){
+    fun onMassage(event: MessageReceivedEvent, prefix: String): Boolean{
         val contentRaw = event.message.contentRaw
         if(!contentRaw.startsWith(prefix)){
             onMassageWithoutPrefix(event)
-            return
+            return false
         }
         val substring = contentRaw.substring(prefix.length)
         val split = substring.split(" ")
@@ -32,25 +32,25 @@ class MassageHandler (val botData: BotData){
 
         if(massageSplitList.size < 1){
             defaultMassage(event)
-            return
+            return false
         }
 
-        when(massageSplitList[0].toLowerCase()){
+        return when(massageSplitList[0].toLowerCase()){
             "character" -> charaterFunctions.characterMassage(event, prefix, massageSplitList)
             "char" -> charaterFunctions.characterMassage(event, prefix, massageSplitList)
             "kink" -> kinkListFunktions.kinkLitsMassage(event, prefix, massageSplitList)
             "kinklist" -> kinkListFunktions.kinkLitsMassage(event, prefix, massageSplitList)
 
+            else -> false
 
-
-        }
+        } //todo mod settings; character speaking
 
 
 
     }
     fun defaultMassage(event: MessageReceivedEvent){
 
-    }
+    } //todo
 
     fun onMassageWithoutPrefix(event: MessageReceivedEvent){
 

@@ -14,23 +14,24 @@ class CharaterFunctions (val botData: BotData){
 
     fun characterMassage(event: MessageReceivedEvent,
         prefix: String,
-        messageSplitted: MutableList<String> = mutableListOf()){
+        messageSplitted: MutableList<String> = mutableListOf()): Boolean{
 
             if(messageSplitted.size < 2){
                 defaultMassage(event, prefix)
-                return
+                return false
             }
             messageSplitted.removeAt(0)
 
-            when(messageSplitted.get(0).toLowerCase()){
-                "add" -> characterAdd(event)
+            return when(messageSplitted.get(0).toLowerCase()){
+                "add" -> {characterAdd(event); true}
                 "edit" -> characterEdit(event, prefix, messageSplitted)
                 "del" -> characterDel(event, prefix, messageSplitted)
                 "delete" -> characterDel(event, prefix, messageSplitted)
-                "list" -> characterList(event)
-                "show" -> characterShow(event, prefix, messageSplitted)
-                "info" -> characterShow(event, prefix, messageSplitted)
-                "template" -> characterTemplate(event)
+                "list" -> {characterList(event); false }
+                "show" -> {characterShow(event, prefix, messageSplitted); false }
+                "info" -> {characterShow(event, prefix, messageSplitted); false }
+                "template" -> {characterTemplate(event); false }
+                else -> false
             }
 
 
@@ -56,10 +57,10 @@ class CharaterFunctions (val botData: BotData){
     }
     fun characterDel(event: MessageReceivedEvent,
                      prefix: String,
-                     messageSplitted: MutableList<String> = mutableListOf()){
+                     messageSplitted: MutableList<String> = mutableListOf()): Boolean{
         if(messageSplitted.size < 2){
             defaultMassage(event, prefix)
-            return
+            return false
         }
         try {
             val toInt = messageSplitted.get(1).trim().toInt() - 1
@@ -67,28 +68,29 @@ class CharaterFunctions (val botData: BotData){
             val user = privatUserData.get(event.author.id)
             if(user == null){
                 sendingErrorText.noCharacterOwnCharaters(event)
-                return
+                return false
             }
             val characters = user.characters
             val characterID = characters.get(toInt)
             if (characterID == 0L){
                 sendingErrorText.noCharacterInSlotOwnCharaters(event)
-                return
+                return false
             }
             botData.characters.remove(characterID)
             characters.removeAt(toInt)
             event.channel.sendMessage("Your character Nr. ${toInt +1} is Deleted.").submit()
+            return true
         } catch (e: Exception){
             e.printStackTrace()
         }
-
+        return false
     }
     fun characterEdit(event: MessageReceivedEvent,
                       prefix: String,
-                      messageSplitted: MutableList<String> = mutableListOf()){
+                      messageSplitted: MutableList<String> = mutableListOf()): Boolean{
         if(messageSplitted.size < 2){
             defaultMassage(event, prefix)
-            return
+            return false
         }
         messageSplitted.removeAt(0)
 
@@ -96,20 +98,20 @@ class CharaterFunctions (val botData: BotData){
              messageSplitted[0].trim().toInt()
         } catch (e: Exception){
             defaultMassage(event, prefix)
-            return
+            return false
         }
 
         val userData = botData.privatUserData.get(event.author.id)
         if(userData == null){
             sendingErrorText.noCharacterOwnCharaters(event)
-            return
+            return false
         }
 
         val charaterId = try{
             userData.characters.get(characterID - 1)
         } catch (e: Exception){
             sendingErrorText.noCharacterInSlotOwnCharaters(event)
-            return
+            return false
         }
 
         val characterClass = botData.characters.get(charaterId)!!
@@ -117,6 +119,7 @@ class CharaterFunctions (val botData: BotData){
 
 
         event.channel.sendMessage("Character Updated").submit()
+        return true
     }
     fun characterList(event: MessageReceivedEvent){
         var privateUserData = botData.privatUserData.get(event.author.id)
