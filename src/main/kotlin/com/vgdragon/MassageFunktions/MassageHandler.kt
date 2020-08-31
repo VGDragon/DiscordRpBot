@@ -13,6 +13,8 @@ class MassageHandler (val botData: BotData){
 
 
 
+
+
     fun onMassage(event: MessageReceivedEvent, prefix: String){
         val contentRaw = event.message.contentRaw
         if(!contentRaw.startsWith(prefix)){

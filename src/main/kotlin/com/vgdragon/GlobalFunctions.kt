@@ -355,4 +355,8 @@ fun convertMessageImageInfo(url: String = "", proxyUrl: String = "", width: Int 
 
 }
 
+fun botAdminName(): String{
+    return "VG_Dragon#8672"
+}
+
 

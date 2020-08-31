@@ -96,7 +96,7 @@ class EventListener : ListenerAdapter() {
             massageHandler.onMassage(event, prefix)
         }
         println()
-    }
+    } // todo save data if updated
 
     override fun onMessageReactionAdd(event: MessageReactionAddEvent) {
 

@@ -56,7 +56,6 @@ class CharacterClass {
             else -> return "N/A"
         }
     }
-
     fun getSexualityText(): String{
         when(sexuality){
             1 -> return "Straight"
@@ -65,7 +64,6 @@ class CharacterClass {
             else -> return "N/A"
         }
     }
-
     fun getRoleText(): String{
         when(role){
             1 -> return "Sub"
@@ -74,6 +72,7 @@ class CharacterClass {
             else -> return "N/A"
         }
     }
+
     fun getSizeCmString(sizeCm: SizeCm): String{
         return "${sizeCm}"
     }
@@ -83,6 +82,18 @@ class CharacterClass {
         } else {
          return "${sizeFeetAndInches.feet}'${sizeFeetAndInches.inches}"
         }
+    }
+
+    fun getImagesString(): String{
+        var returnString = ""
+        for((i, image) in img.withIndex()){
+            if(i != 0){
+                returnString += "\n"
+            }
+            returnString += image.link
+        }
+
+        return returnString
     }
 
     fun getCharacterEmbed(): MessageEmbed{
@@ -125,9 +136,10 @@ class CharacterClass {
         embedFieldList.add(MessageEmbed.Field("Likes", likes, true))
         embedFieldList.add(MessageEmbed.Field("Backstory", backstory, true))
 
+        embedFieldList.add(MessageEmbed.Field("Images", getImagesString(), true))
 
         return convertRichMessage(fields = embedFieldList)
-    }// todo
+    }
 
 
 }
