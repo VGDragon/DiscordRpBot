@@ -16,22 +16,23 @@ class KinkListFunktions (val botData: BotData){
                         massageSplitted: MutableList<String> = mutableListOf()): Boolean{
 
         if(massageSplitted.size < 2){
-            defaultMassage(event, prefix)
-            return false
+            return defaultMassage(event, prefix)
         }
         massageSplitted.removeAt(0)
 
         return when(massageSplitted[0].toLowerCase()){
 
             "update" -> kinkListUpdate(event, prefix, massageSplitted)
-            "help" -> {helpMessage(event, prefix, massageSplitted); true}
-            else -> false
+            "show" -> {showMessage(event, prefix, massageSplitted); true}
+            "link" -> {linkMessage(event, prefix, massageSplitted); true}
+            "image" -> imageMessage(event, prefix, massageSplitted)
+            else -> defaultMassage(event, prefix)
 
         }
 
 
     }
-    fun helpMessage(event: MessageReceivedEvent,
+    fun linkMessage(event: MessageReceivedEvent,
                     prefix: String,
                     massageSplitted: MutableList<String> = mutableListOf()){
 
@@ -46,10 +47,63 @@ class KinkListFunktions (val botData: BotData){
 
 
     }
+    fun showMessage(event: MessageReceivedEvent,
+                    prefix: String,
+                    massageSplitted: MutableList<String> = mutableListOf()){
+
+        var privateUserData = botData.privatUserData.get(event.author.id)
+        if(privateUserData == null){
+           privateUserData = PrivateUserData(event.author.id)
+            botData.privatUserData.put(event.author.id, privateUserData)
+        }
+
+        val fieldList: MutableList<MessageEmbed.Field> = mutableListOf()
+        fieldList.add(
+            MessageEmbed.Field("Link", privateUserData.kinks.link, false))
+
+        event.channel.sendMessage(convertRichMessage(fields = fieldList, image = MessageEmbed.ImageInfo(privateUserData.kinks.picLink, "",500, 500))).submit()
+
+
+    }
+    fun imageMessage(event: MessageReceivedEvent,
+                    prefix: String,
+                    massageSplitted: MutableList<String> = mutableListOf()): Boolean {
+        if(massageSplitted.size < 2){
+            return defaultMassage(event, prefix)
+        }
+        massageSplitted.removeAt(0)
+
+        var privateUserData = botData.privatUserData.get(event.author.id)
+        if(privateUserData == null){
+            privateUserData = PrivateUserData(event.author.id)
+            botData.privatUserData.put(event.author.id, privateUserData)
+        }
+        privateUserData.kinks.picLink = massageSplitted.get(0)
+
+
+        event.channel.sendMessage("Picture Link added.").submit()
+        return true
+    }
+
 
     fun defaultMassage(event: MessageReceivedEvent,
-                       prefix: String){
-
+                       prefix: String): Boolean {
+        val fieldList: MutableList<MessageEmbed.Field> = mutableListOf()
+        fieldList.add(
+            MessageEmbed.Field("update", "To update your KinkList.\n" +
+                    "Example: ${prefix}kinklist update", true))
+        fieldList.add(
+            MessageEmbed.Field("show", "To show a Character from the List of Characters, that are waiting to be accepted.\n" +
+                    "Example: ${prefix}kinklist show", true))
+        fieldList.add(
+            MessageEmbed.Field("link", "To get the KinkList Link.\n" +
+                    "Example: ${prefix}kinklist link", true))
+        fieldList.add(
+            MessageEmbed.Field("image", "To add an Image of your KinkList, that will be shown, if someone look in your KinkList.\n" +
+                    "Example: ${prefix}kinklist image (picture Link)", true))
+        fieldList.add(MessageEmbed.Field("Special Info", "() need to be included.\n[] is optional.", true))
+        event.channel.sendMessage(convertRichMessage(fields = fieldList)).submit()
+        return false
     }
 
 

@@ -8,6 +8,7 @@ import com.vgdragon.MassageFunktions.MassageHandler
 import com.vgdragon.dataclass.BotData
 import com.vgdragon.dataclass.GuildData
 import com.vgdragon.dataclass.ServerUserData
+import com.vgdragon.funftions.DiscordWebhook
 import com.vgdragon.funftions.UserMapUpdate
 import net.dv8tion.jda.api.events.DisconnectEvent
 import net.dv8tion.jda.api.events.ReadyEvent
@@ -73,22 +74,20 @@ class EventListener : ListenerAdapter() {
     }
 
     override fun onMessageReceived(event: MessageReceivedEvent) {
-
-
-        if(event.author.isBot)
+        if(event.author.isBot || event.isWebhookMessage)
             return
 
-        val guild = event.guild
-        val isPrivate = guild == null
+
+        val isPrivate = !event.isFromGuild
 
         val prefix = if (isPrivate) {
             defaultPrefix
         } else {
             synchronized(botDataLock) {
-                if (botData.prefixMap.get(guild.id) == null) {
+                if (botData.prefixMap.get(event.guild.id) == null) {
                     defaultPrefix
                 } else {
-                    botData.prefixMap.get(guild.id)!!
+                    botData.prefixMap.get(event.guild.id)!!
                 }
             }
 
@@ -100,7 +99,6 @@ class EventListener : ListenerAdapter() {
         }
         if(saveDate)
             backupWrite()
-        println()
     }
 
     override fun onMessageReactionAdd(event: MessageReactionAddEvent) {

@@ -1,15 +1,36 @@
 package com.vgdragon
 
-import com.vgdragon.dataclass.KinkList
-import com.vgdragon.dataclass.SizeCm
-import com.vgdragon.dataclass.SizeFeetAndInches
+import com.vgdragon.dataclass.*
 import net.dv8tion.jda.api.entities.EmbedType
 import net.dv8tion.jda.api.entities.MessageEmbed
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import java.net.URLDecoder
 import java.time.OffsetDateTime
 
+
+
+fun getServerUserData(botData: BotData, guildID: String, userID: String): ServerUserData?{
+    var guildData = botData.guildDataClass.get(guildID)
+    if(guildData == null ){
+        guildData = createGuildData(botData, guildID)
+    }
+    val serverUserData = guildData.userMap.get(userID)
+
+    if(serverUserData == null){
+        guildData.userMap.put(userID, ServerUserData(userID))
+        return null
+    }
+    return serverUserData
+}
+fun createGuildData(botData: BotData, guildID: String): GuildData{
+    val guildData = GuildData(guildID)
+    botData.guildDataClass.put(guildID, guildData)
+    return guildData
+}
+
+
 fun convertCmInFeetAndInches(sizeCm: SizeCm): SizeFeetAndInches{
-    var feet: Double = sizeCm.size / 30.48
+    val feet: Double = sizeCm.size / 30.48
     val rest = "$feet".split(".").get(1)
     val inches = "0.$rest".toDouble() * 12
 
@@ -81,6 +102,7 @@ fun kinkListDecoder(kinkListUrl: String, para: String = ""): KinkList{
 
     val kinkListClass = codeIntListToKinkList(codeIntList, para)
     kinkListClass.link = kinkListUrl
+    kinkListClass.isAdded = true
 
     return kinkListClass
 }
@@ -357,6 +379,10 @@ fun convertMessageImageInfo(url: String = "", proxyUrl: String = "", width: Int 
 
 fun botAdminName(): String{
     return "VG_Dragon#8672"
+}
+
+fun defaultWebhookAvatarURL(): String{
+    return "https://drive.google.com/uc?export=view&id=1Iu6vhrjpdVeBGwZwuFJohZq_6CY_icl9"
 }
 
 

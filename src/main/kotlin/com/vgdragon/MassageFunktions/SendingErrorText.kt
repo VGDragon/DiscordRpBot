@@ -36,4 +36,8 @@ class SendingErrorText {
         event.channel.sendMessage("This user don't have a Character on this server.").submit()
     }
 
+    fun noPicture(event: MessageReceivedEvent){
+        event.channel.sendMessage("You don't have a picture on that Character.").submit()
+    }
+
 }

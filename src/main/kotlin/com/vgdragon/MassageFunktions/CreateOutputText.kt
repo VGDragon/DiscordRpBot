@@ -16,7 +16,7 @@ class CreateOutputText {
                         "Sexuality: ${charClass.getSexualityText()}\n" +
                         "Role: ${charClass.getRoleText()}" +
                         textAfterTheCharacter,
-                true))
+                false))
     }
 
 }

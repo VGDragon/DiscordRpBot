@@ -1,8 +1,12 @@
 package com.vgdragon.dataclass
 
-class KinkList(){
-    var link = "https://cdn.rawgit.com/Goctionni/KinkList/master/v1.0.2.html#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+import com.vgdragon.convertRichMessage
+import net.dv8tion.jda.api.entities.MessageEmbed
 
+class KinkList{
+    var link = "https://cdn.rawgit.com/Goctionni/KinkList/master/v1.0.2.html#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    var picLink = ""
+    var isAdded = false
 
     // 0 = Not Entered
     // 1 = Favorite

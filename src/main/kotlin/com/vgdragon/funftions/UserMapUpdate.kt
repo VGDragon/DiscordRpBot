@@ -86,6 +86,10 @@ class UserMapUpdate (val botData: BotData){
             val userDataClass = guildData.userMap.get(userId)?: return
             userDataClass.onServer = true
 
+        val charactersWaitingForModAccepeing = guildData.charactersWaitingForModAccepeing
+        charactersWaitingForModAccepeing.removeIf { it.first.equals(userId) }
+
+
 
     }
 

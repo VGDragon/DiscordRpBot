@@ -4,8 +4,10 @@ import com.vgdragon.MassageFunktions.CreateOutputText
 import com.vgdragon.MassageFunktions.SendingErrorText
 import com.vgdragon.convertRichMessage
 import com.vgdragon.dataclass.BotData
+import com.vgdragon.dataclass.CharacterClass
 import com.vgdragon.dataclass.GuildData
 import com.vgdragon.dataclass.ServerUserData
+import com.vgdragon.getServerUserData
 import net.dv8tion.jda.api.entities.MessageEmbed
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 
@@ -18,130 +20,113 @@ class ServerFuctions(val botData: BotData){
 
     fun serverMassage(event: MessageReceivedEvent,
     prefix: String,
-    messageSplitted: MutableList<String> = mutableListOf()){
+    messageSplitted: MutableList<String> = mutableListOf()): Boolean {
 
         if(messageSplitted.size < 2){
-            defaultMassage(event, prefix)
-            return
+            return defaultMassage(event, prefix)
         }
         messageSplitted.removeAt(0)
 
-        when(messageSplitted.get(0).toLowerCase()){
+        return when(messageSplitted.get(0).toLowerCase()){
             "add" -> addCharacterToServer(event, prefix, messageSplitted)
-            "delete" -> deleteCharacterfromServer(event, prefix, messageSplitted)
-            "del" -> deleteCharacterfromServer(event, prefix, messageSplitted)
-            "list" -> listCharacterOnServer(event, prefix, messageSplitted)
-            "show" -> showCharacterOnServer(event, prefix, messageSplitted)
+            "remove" -> removeCharacterfromServer(event, prefix, messageSplitted)
+            "rm" -> removeCharacterfromServer(event, prefix, messageSplitted)
+            "list" -> {listCharacterOnServer(event, prefix, messageSplitted); false}
+            "show" -> {showCharacterOnServer(event, prefix, messageSplitted); false}
+            "limits" -> {showCharacterOnServer(event, prefix, messageSplitted); false}
+            else -> defaultMassage(event, prefix)
         }
     }
 
     fun addCharacterToServer(event: MessageReceivedEvent,
                              prefix: String,
-                             messageSplitted: MutableList<String> = mutableListOf()){
+                             messageSplitted: MutableList<String> = mutableListOf()): Boolean {
         if(messageSplitted.size < 2){
-            defaultMassage(event, prefix)
-            return
+            return defaultMassage(event, prefix)
         }
         messageSplitted.removeAt(0)
 
         val id = try {
             messageSplitted[0].trim().toInt()
         } catch (e: Exception){
-            defaultMassage(event, prefix)
-            return
+            return defaultMassage(event, prefix)
         }
 
         val privateUserData = botData.privatUserData.get(event.author.id)
         if(privateUserData == null){
             sendingErrorText.noCharacterFromOtherUser(event)
-            return
+            return false
         }
 
         val characterId = privateUserData.characters.get(id - 1)
         if(characterId == 0L){
             sendingErrorText.noCharacterInSlotFromOtherUser(event)
-            return
+            return false
         }
 
-        var guildDataClass = botData.guildDataClass.get(event.guild.id)
-        if(guildDataClass == null){
-            guildDataClass = GuildData(event.guild.id)
-            botData.guildDataClass.put(event.guild.id, guildDataClass)
-        }
-
-        var serverUserData = guildDataClass.userMap.get(event.author.id)
-
-        if(serverUserData == null){
-            serverUserData = ServerUserData(event.author.id)
-            guildDataClass.userMap.put(event.author.id, serverUserData)
-        }
+        val serverUserData = getServerUserData(botData, event.guild.id, event.author.id) ?: ServerUserData(event.author.id)
 
         val characters = serverUserData.characters
 
 
         if(characters.contains(characterId)){
             sendingErrorText.thisCharacterIsOnServer(event)
-            return
+            return false
         }
-        characters.add(characterId)
-        event.channel.sendMessage("Character is added to the server.").submit()
+        val characterClass = botData.characters.get(characterId)
+        if(addCharacterToServerCheck(event, characterClass!!, botData.guildDataClass.get(event.guild.id)!!) ){
+            characters.add(characterId)
+            event.channel.sendMessage("Character is added to the server.").submit()
+            return true
+        }
 
+        return true
     }
-    fun deleteCharacterfromServer(event: MessageReceivedEvent,
+    fun removeCharacterfromServer(event: MessageReceivedEvent,
                                   prefix: String,
-                                  messageSplitted: MutableList<String> = mutableListOf()){
+                                  messageSplitted: MutableList<String> = mutableListOf()): Boolean {
         if(messageSplitted.size < 2){
-            defaultMassage(event, prefix)
-            return
+            return defaultMassage(event, prefix)
         }
         messageSplitted.removeAt(0)
 
         val id = try {
             messageSplitted[0].trim().toInt()
         } catch (e: Exception){
-            defaultMassage(event, prefix)
-            return
+            return defaultMassage(event, prefix)
         }
 
-        var guildDataClass = botData.guildDataClass.get(event.guild.id)
-        if(guildDataClass == null){
-            guildDataClass = GuildData(event.guild.id)
-            botData.guildDataClass.put(event.guild.id, guildDataClass)
-            sendingErrorText.noCharacterOnServerOwn(event)
-            return
-        }
-
-
-        var serverUserData = guildDataClass.userMap.get(event.author.id)
+        val serverUserData =  getServerUserData(botData, event.guild.id, event.author.id)
 
         if(serverUserData == null){
-            serverUserData = ServerUserData(event.author.id)
-            guildDataClass.userMap.put(event.author.id, serverUserData)
             sendingErrorText.noCharacterOnServerOwn(event)
-
-            return
+            return false
         }
         val characters = serverUserData.characters
 
-        if(characters.size <= id){
+        if(characters.size < id){
             sendingErrorText.noCharacterInSlotOwnCharaters(event)
-            return
+            return false
         }
 
         characters.removeAt(id - 1)
-        event.channel.sendMessage("Character is deleted from the server.").submit()
+        event.channel.sendMessage("Character is removed from the server.").submit()
 
+        return true
     }
 
     fun listCharacterOnServer(event: MessageReceivedEvent,
                                 prefix: String,
                                 messageSplitted: MutableList<String> = mutableListOf()){
         val mentionedMembers = event.message.mentionedMembers
+        val ownChar =
+            event.message.mentionedRoles.isEmpty() && !event.message.mentionsEveryone() && !mentionedMembers.isNotEmpty()
+
 
         var userID = ""
         var userName = ""
 
-        val ownCharList = if(mentionedMembers.isEmpty()){
+        val ownCharList = if(ownChar && mentionedMembers.isEmpty()){
             val author = event.author
             userID = author.id
             userName = author.name
@@ -154,33 +139,23 @@ class ServerFuctions(val botData: BotData){
             false
         }
 
-        var guildDataClass = botData.guildDataClass.get(event.guild.id)
-        if(guildDataClass == null){
-            guildDataClass = GuildData(event.guild.id)
-            botData.guildDataClass.put(event.guild.id, guildDataClass)
-            if(ownCharList)
-                sendingErrorText.noCharacterOnServerOwn(event)
-            else
-                sendingErrorText.noCharaterOnServerOtherUser(event)
-            return
-        }
 
-        var serverUserClass = guildDataClass.userMap.get(userID)
-        if (serverUserClass == null){
-            serverUserClass = ServerUserData(userID)
-            guildDataClass.userMap.put(userID, serverUserClass)
+
+        var serverUserData = getServerUserData(botData, event.guild.id, userID)
+        if (serverUserData == null){
+            serverUserData = ServerUserData(userID)
         }
 
 
 
         val fieldList: MutableList<MessageEmbed.Field> = mutableListOf()
-        fieldList.add(MessageEmbed.Field("Character List from $userName", "$userName have ${serverUserClass.characters.size} Characters", true))
+        fieldList.add(MessageEmbed.Field("Character List from $userName", "$userName have ${serverUserData.characters.size} Characters", false))
 
 
-        for((i, charLong) in serverUserClass.characters.withIndex()){
+        for((i, charLong) in serverUserData.characters.withIndex()){
             val charClass = botData.characters.get(charLong) ?: continue
 
-            createOutputText.characterList(fieldList, charClass, "${i + 1}")
+            createOutputText.characterList(fieldList, charClass, "ID ${i + 1}")
         }
         event.channel.sendMessage(convertRichMessage(fields = fieldList)).submit()
 
@@ -202,13 +177,11 @@ class ServerFuctions(val botData: BotData){
         val ownCharList = if(mentionedMembers.isEmpty()){
             val author = event.author
             userID = author.id
-            userName = author.name
             true
 
         } else {
             val get = mentionedMembers.get(0)
             userID = get.id
-            userName = get.effectiveName
             false
         }
 
@@ -222,26 +195,11 @@ class ServerFuctions(val botData: BotData){
             defaultMassage(event, prefix)
             return
         }
-        var guildData = botData.guildDataClass.get(event.guild.id)
 
-        if(guildData == null){
-            guildData = GuildData(event.guild.id)
-            botData.guildDataClass.put(event.guild.id, guildData)
-            if(ownCharList)
-                sendingErrorText.noCharacterOnServerOwn(event)
-            else
-                sendingErrorText.noCharaterOnServerOtherUser(event)
-
-            return
-        }
-
-        var serverUserData = guildData.userMap.get(userID)
+        val serverUserData = getServerUserData(botData, event.guild.id, userID)
 
 
         if(serverUserData == null){
-
-            serverUserData = ServerUserData(userID)
-            guildData.userMap.put(userID, serverUserData)
             if(ownCharList)
                 sendingErrorText.noCharacterOnServerOwn(event)
             else
@@ -257,28 +215,84 @@ class ServerFuctions(val botData: BotData){
                 sendingErrorText.noCharacterInSlotFromOtherUser(event)
             return
         }
-        event.channel.sendMessage(botData.characters.get(charLong)!!.getCharacterEmbed()).submit()
+        event.channel.sendMessage(botData.characters.get(charLong)!!.getCharacterString()).submit()
 
     }
 
 
     fun defaultMassage(event: MessageReceivedEvent,
-                       prefix: String){
+                       prefix: String): Boolean {
         val fieldList: MutableList<MessageEmbed.Field> = mutableListOf()
         fieldList.add(
-            MessageEmbed.Field("add", "To make a new Character.\n" +
-                    "Example: ${prefix}character add", true))
+            MessageEmbed.Field("add", "To make a Character to the server.\n" +
+                    "Example: ${prefix}server add", true))
         fieldList.add(
-            MessageEmbed.Field("delete", "To delete a Character.\n" +
-                    "Example: ${prefix}character delete (id of the character)", true))
+            MessageEmbed.Field("remove", "To remove Character from the server.\n" +
+                    "Example: ${prefix}server remove (id of the character)", true))
         fieldList.add(
             MessageEmbed.Field("list", "To get a list of your Characters or other users Characters.\n" +
-                    "Example: ${prefix}character list [mention User]", true))
+                    "Example: ${prefix}server list [mention User]", true))
         fieldList.add(
             MessageEmbed.Field("show", "To show all infos of a Character.\n" +
-                    "Example: ${prefix}character show (Character ID) [mention User]", true))
+                    "Example: ${prefix}server show (Character ID) [mention User]", true))
         fieldList.add(MessageEmbed.Field("Special Info", "() need to be included.\n[] is optional.", true))
         event.channel.sendMessage(convertRichMessage(fields = fieldList)).submit()
+        return false
+    }
+
+    fun addCharacterToServerCheck(event: MessageReceivedEvent, characterClass: CharacterClass, guildData: GuildData): Boolean{
+        if(!guildData.characterWithLimits && !guildData.characterModCheck)
+            return true
+
+        val serverLimitsComparing = if(guildData.characterWithLimits){
+            characterClass.serverLimitsComparing(guildData.characterLimits)
+        } else{
+            mutableListOf()
+        }
+        if (!serverLimitsComparing.isEmpty()){
+            event.channel.sendMessage(serverLimitsComparing.joinToString(separator = "\n")).submit()
+            return false
+        }
+        if (guildData.characterModCheck) {
+            //if (!guildData.modChannel.isNullOrBlank()) {
+            //    val characterString = characterClass.getCharacterString()
+            //    if(characterString.length > 2000){
+            //        event.channel.sendFile(characterString.byteInputStream(),"Charater.txt").submit()
+            //        val sendMessage = event.guild.getTextChannelById(guildData.modChannel)
+            //            ?.sendMessage(characterClass.getCharacterString())
+            //        if(sendMessage != null)
+            //            sendMessage.submit()
+            //    }
+            //    val sendMessage = event.guild.getTextChannelById(guildData.modChannel)?.sendMessage(characterString)
+            //    if(sendMessage != null)
+            //        sendMessage.submit()
+            //}
+            if(guildData.charactersWaitingForModAccepeing == null)
+                guildData.charactersWaitingForModAccepeing = mutableListOf()
+
+            val isInList = if(guildData.charactersWaitingForModAccepeing.isNullOrEmpty()) {
+                false
+            } else {
+                guildData.charactersWaitingForModAccepeing.find { it.second == characterClass.charId } != null
+            }
+
+
+            if (!isInList){
+                guildData.charactersWaitingForModAccepeing.add(Pair(event.author.id, characterClass.charId))
+                if (!guildData.modChannel.isNullOrEmpty()) {
+                    val sendMessage = event.guild.getTextChannelById(guildData.modChannel)?.sendMessage("A new Character is waiting for being accepted")
+                    if(sendMessage != null)
+                        sendMessage.submit()
+                }
+                event.channel.sendMessage("You Character is submitted. A Mod need to confirm your Character before it is added to the server.")
+                    .submit()
+                return false
+            }
+            event.channel.sendMessage("This Character is already submitted.")
+                .submit()
+            return false
+        }
+        return true
     }
 
 }

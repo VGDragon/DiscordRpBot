@@ -17,8 +17,7 @@ class CharaterFunctions (val botData: BotData){
         messageSplitted: MutableList<String> = mutableListOf()): Boolean{
 
             if(messageSplitted.size < 2){
-                defaultMassage(event, prefix)
-                return false
+                return defaultMassage(event, prefix)
             }
             messageSplitted.removeAt(0)
 
@@ -31,7 +30,15 @@ class CharaterFunctions (val botData: BotData){
                 "show" -> {characterShow(event, prefix, messageSplitted); false }
                 "info" -> {characterShow(event, prefix, messageSplitted); false }
                 "template" -> {characterTemplate(event); false }
-                else -> false
+                "picture" -> characterPictures(event, prefix, messageSplitted)
+                "limit" -> {
+                    if(event.isFromGuild)
+                        limitMassage(event)
+                    else
+                        event.channel.sendMessage("This Function only works on a server.").submit()
+                    false
+                }
+                else -> defaultMassage(event, prefix)
             }
 
 
@@ -53,14 +60,14 @@ class CharaterFunctions (val botData: BotData){
         user.characters.add(botData.nextCharId)
 
         botData.nextCharId++
+        botData.characters.put(characterClass.charId, characterClass)
         event.channel.sendMessage("Character Added").submit()
     }
     fun characterDel(event: MessageReceivedEvent,
                      prefix: String,
                      messageSplitted: MutableList<String> = mutableListOf()): Boolean{
         if(messageSplitted.size < 2){
-            defaultMassage(event, prefix)
-            return false
+            return defaultMassage(event, prefix)
         }
         try {
             val toInt = messageSplitted.get(1).trim().toInt() - 1
@@ -71,6 +78,10 @@ class CharaterFunctions (val botData: BotData){
                 return false
             }
             val characters = user.characters
+            if(characters.size <= toInt){
+                sendingErrorText.noCharacterInSlotOwnCharaters(event)
+                return false
+            }
             val characterID = characters.get(toInt)
             if (characterID == 0L){
                 sendingErrorText.noCharacterInSlotOwnCharaters(event)
@@ -89,16 +100,14 @@ class CharaterFunctions (val botData: BotData){
                       prefix: String,
                       messageSplitted: MutableList<String> = mutableListOf()): Boolean{
         if(messageSplitted.size < 2){
-            defaultMassage(event, prefix)
-            return false
+            return defaultMassage(event, prefix)
         }
         messageSplitted.removeAt(0)
 
         val characterID = try{
              messageSplitted[0].trim().toInt()
         } catch (e: Exception){
-            defaultMassage(event, prefix)
-            return false
+            return defaultMassage(event, prefix)
         }
 
         val userData = botData.privatUserData.get(event.author.id)
@@ -129,10 +138,12 @@ class CharaterFunctions (val botData: BotData){
         }
 
         val fieldList: MutableList<MessageEmbed.Field> = mutableListOf()
-        fieldList.add(MessageEmbed.Field("Character List from ${event.author.name}", "You have ${privateUserData.characters.size} Characters", true))
-        val gd = botData.guildDataClass.get(event.guild.id)!!
+        fieldList.add(MessageEmbed.Field("Character List from ${event.author.name}", "You have ${privateUserData.characters.size} Characters", false))
+        event.isFromGuild
+
 
         val serverUserCharacterMap = if (event.channelType.isGuild) {
+            val gd = botData.guildDataClass.get(event.guild.id)!!
             gd.userMap.get(event.author.id)!!.characters
         } else {
             mutableListOf()
@@ -148,7 +159,7 @@ class CharaterFunctions (val botData: BotData){
                 "\nCharacter is on Server: No"
             }
 
-            createOutputText.characterList(fieldList, charClass, "${i + 1}", serverMassage)
+            createOutputText.characterList(fieldList, charClass, "ID ${i + 1}", serverMassage)
         }
         event.channel.sendMessage(convertRichMessage(fields = fieldList)).submit()
     }
@@ -175,12 +186,22 @@ class CharaterFunctions (val botData: BotData){
             sendingErrorText.noCharacterOwnCharaters(event)
             return
         }
+        if(privateUserData.characters.size <= charInt){
+            sendingErrorText.noCharacterInSlotOwnCharaters(event)
+            return
+        }
         val charLong = privateUserData.characters.get(charInt)
         if(charLong == 0L){
             sendingErrorText.noCharacterInSlotOwnCharaters(event)
             return
         }
-        event.channel.sendMessage(botData.characters.get(charLong)!!.getCharacterEmbed()).submit()
+        val characterString = botData.characters.get(charLong)!!.getCharacterString()
+        if(characterString.length > 2000){
+            event.channel.sendFile(characterString.byteInputStream(),"Charater.txt").submit()
+            return
+        }
+
+        event.channel.sendMessage(characterString).submit()
     }
     fun characterTemplate(event: MessageReceivedEvent){
         val massageString =
@@ -230,7 +251,111 @@ class CharaterFunctions (val botData: BotData){
         fieldList.add(MessageEmbed.Field("You want more?", "Ask the Bot Admin if you want to add more ${botAdminName()}.", true))
         event.channel.sendMessage(convertRichMessage(fields = fieldList)).submit()
     }
+    fun characterPictures(event: MessageReceivedEvent,
+                     prefix: String,
+                     messageSplitted: MutableList<String> = mutableListOf()): Boolean{
+        if(messageSplitted.size < 4){
+            return defaultMassage(event, prefix)
+        }
+        messageSplitted.removeAt(0)
 
+        val addPicture = if(messageSplitted.get(0).equals("add")){
+            true
+        } else if(messageSplitted.get(0).equals("del") || messageSplitted.get(0).equals("delete")){
+            false
+        } else
+            return defaultMassage(event, prefix)
+
+        messageSplitted.removeAt(0)
+
+        try {
+            val toInt = messageSplitted.get(0).trim().toInt() - 1
+            val privatUserData = botData.privatUserData
+            val user = privatUserData.get(event.author.id)
+            if(user == null){
+                sendingErrorText.noCharacterOwnCharaters(event)
+                return false
+            }
+            val characters = user.characters
+            if(characters.size <= toInt){
+                sendingErrorText.noCharacterInSlotOwnCharaters(event)
+                return false
+            }
+            val characterID = characters.get(toInt)
+            if (characterID == 0L){
+                sendingErrorText.noCharacterInSlotOwnCharaters(event)
+                return false
+            }
+            val characterClass = botData.characters.get(characterID)
+            if(characterClass == null){
+                event.channel.sendMessage("The Bot had an error. CharacterClass not found").submit()
+                return false
+            }
+            if(addPicture){
+                characterClass.img.add(CharacterImg("", messageSplitted.get(1)))
+                event.channel.sendMessage("Picture added.").submit()
+                return true
+            }
+
+            val delInt = messageSplitted.get(1).trim().toInt() - 1
+            if(characterClass.img.size <= delInt){
+                sendingErrorText.noPicture(event)
+                return false
+            }
+            characterClass.img.removeAt(delInt)
+
+            event.channel.sendMessage("Picture deleted.").submit()
+            return true
+        } catch (e: Exception){
+            e.printStackTrace()
+        }
+        return false
+    }
+
+    fun limitMassage(event: MessageReceivedEvent){
+        val guildData = botData.guildDataClass.get(event.guild.id)
+
+        if(guildData == null){
+            event.channel.sendMessage("This server has no limits set.").submit()
+            return
+        } else if(!guildData.characterWithLimits){
+            event.channel.sendMessage("This server has no limits set.").submit()
+            return
+        }
+
+        val characterLimits = guildData.characterLimits
+
+        val fieldList: MutableList<MessageEmbed.Field> = mutableListOf()
+        if(characterLimits.minimumAge > 0 && characterLimits.maximumAge < Int.MAX_VALUE){
+            fieldList.add(MessageEmbed.Field("Age", "${characterLimits.minimumAge} - ${characterLimits.maximumAge}", false))
+        } else if(characterLimits.minimumAge > 0 ){
+            fieldList.add(MessageEmbed.Field("Age", "Minimum ${characterLimits.minimumAge}", false))
+        } else if(characterLimits.maximumAge < Int.MAX_VALUE){
+            fieldList.add(MessageEmbed.Field("Age", "Maximum ${characterLimits.minimumAge}", false))
+        }
+
+        if(characterLimits.minimumHeight.size > 0 && characterLimits.maximumHeight.size < Int.MAX_VALUE){
+            fieldList.add(MessageEmbed.Field("Height", "${characterLimits.minimumHeight.size}cm - ${characterLimits.maximumHeight.size}cm (" +
+                    "${characterLimits.minimumHeightUS.feet}'${characterLimits.minimumHeightUS.inches} - ${characterLimits.maximumHeightUS.feet}'${characterLimits.maximumHeightUS.inches})", true))
+        } else if(characterLimits.minimumHeight.size > 0 ){
+            fieldList.add(MessageEmbed.Field("Height", "Minimum ${characterLimits.minimumHeight.size}cm (" +
+                    "${characterLimits.minimumHeightUS.feet}'${characterLimits.minimumHeightUS.inches})", false))
+        } else if(characterLimits.maximumHeight.size < Int.MAX_VALUE){
+            fieldList.add(MessageEmbed.Field("Height", "Maximum ${characterLimits.maximumHeight.size}cm (" +
+                    "${characterLimits.maximumHeightUS.feet}'${characterLimits.maximumHeightUS.inches})", false))
+        }
+
+        var neededInfos = ""
+
+        for (limit in characterLimits.neededChareacterInfo){
+            neededInfos += " $$limit"
+        }
+
+        fieldList.add(MessageEmbed.Field("Needed Infos", neededInfos.trim(), false))
+
+        event.channel.sendMessage(convertRichMessage(fields = fieldList)).submit()
+
+    }
 
 
 
@@ -304,11 +429,11 @@ class CharaterFunctions (val botData: BotData){
             currentVariable.equals("hair_style", true) -> characterClass.hairStyle = text
             currentVariable.equals("eye_color", true) -> characterClass.eyeColor = text
             currentVariable.equals("nationality", true) -> characterClass.nationality = text
-            currentVariable.equals("tattoos:", true) -> characterClass.tattoos = text
-            currentVariable.equals("piercings:", true) -> characterClass.piercings = text
+            currentVariable.equals("tattoos", true) -> characterClass.tattoos = text
+            currentVariable.equals("piercings", true) -> characterClass.piercings = text
             currentVariable.equals("markings", true) -> characterClass.bodyMarkingsOrScars = text
-            currentVariable.equals("family:", true) -> characterClass.family = text
-            currentVariable.equals("clothes:", true) -> characterClass.clothes = text
+            currentVariable.equals("family", true) -> characterClass.family = text
+            currentVariable.equals("clothes", true) -> characterClass.clothes = text
             currentVariable.equals("cup_size", true) -> characterClass.cupSize = text
             currentVariable.equals("nipples_sensitivity", true) -> characterClass.nippleSensitivity = text
             currentVariable.equals("cock_length", true) -> lenghtString(text, characterClass)
@@ -319,7 +444,7 @@ class CharaterFunctions (val botData: BotData){
             currentVariable.equals("limits", true) -> characterClass.limitsExtra = text
             currentVariable.equals("personality", true) -> characterClass.personality = text
             currentVariable.equals("hobbies", true) -> characterClass.hobbies = text
-            currentVariable.equals("dislikes", true) -> characterClass.name = text
+            currentVariable.equals("dislikes", true) -> characterClass.dislikes = text
             currentVariable.equals("likes", true) -> characterClass.likes = text
             currentVariable.equals("backstory", true) -> characterClass.backstory = text
         }
@@ -442,7 +567,7 @@ class CharaterFunctions (val botData: BotData){
     }
 
     fun defaultMassage(event: MessageReceivedEvent,
-                       prefix: String){
+                       prefix: String): Boolean {
         val fieldList: MutableList<MessageEmbed.Field> = mutableListOf()
         fieldList.add(MessageEmbed.Field("add", "To make a new Character.\n" +
                 "Example: ${prefix}character add [character Info]", true))
@@ -453,11 +578,20 @@ class CharaterFunctions (val botData: BotData){
         fieldList.add(MessageEmbed.Field("list", "To get a list of your Characters.\n" +
                 "Example: ${prefix}character list", true))
         fieldList.add(MessageEmbed.Field("show", "To show all infos of a Characters.\n" +
-                "Example: ${prefix}character show", true))
+                "Example: ${prefix}character show (id of the character)", true))
         fieldList.add(MessageEmbed.Field("template", "To show all infos you can put in your Characters and some infos.\n" +
                 "Example: ${prefix}character template", true))
+        fieldList.add(
+            MessageEmbed.Field("picture", "To add or delete pictures to your character.\n" +
+                    "Example: ${prefix}picture add (id of the character) (link of the picture)\n" +
+                    "Example: ${prefix}picture delete (id of the character) (number of the picture)\n", true))
+        fieldList.add(
+            MessageEmbed.Field("limit", "To get a List of all Limits the Server have for a Character.\n" +
+                    "Example: ${prefix}character limit", true))
         fieldList.add(MessageEmbed.Field("Special Info", "() need to be included.\n[] is optional.", true))
         event.channel.sendMessage(convertRichMessage(fields = fieldList)).submit()
+
+        return false
     }
 
 
